@@ -1,0 +1,64 @@
+{
+  "name": "Vehicle",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string",
+      "description": "Unique vehicle identifier"
+    },
+    "route_id": {
+      "type": "string",
+      "description": "ID of the route this vehicle is serving"
+    },
+    "current_latitude": {
+      "type": "number",
+      "description": "Current GPS latitude"
+    },
+    "current_longitude": {
+      "type": "number",
+      "description": "Current GPS longitude"
+    },
+    "heading": {
+      "type": "number",
+      "description": "Direction of travel in degrees"
+    },
+    "speed_kmh": {
+      "type": "number",
+      "description": "Current speed in kilometers per hour"
+    },
+    "occupancy_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "full"
+      ],
+      "description": "Current passenger occupancy level"
+    },
+    "next_stop_id": {
+      "type": "string",
+      "description": "ID of the next scheduled stop"
+    },
+    "estimated_arrival": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Estimated arrival time at next stop"
+    },
+    "is_delayed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the vehicle is running behind schedule"
+    },
+    "delay_minutes": {
+      "type": "number",
+      "description": "Number of minutes delayed (if applicable)"
+    }
+  },
+  "required": [
+    "vehicle_id",
+    "route_id",
+    "current_latitude",
+    "current_longitude"
+  ]
+}
