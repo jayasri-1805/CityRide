@@ -1,0 +1,54 @@
+{
+  "name": "Stop",
+  "type": "object",
+  "properties": {
+    "stop_name": {
+      "type": "string",
+      "description": "Name of the bus stop"
+    },
+    "stop_code": {
+      "type": "string",
+      "description": "Unique identifier code for the stop"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Geographic latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Geographic longitude"
+    },
+    "routes": {
+      "type": "array",
+      "description": "Array of route IDs that serve this stop",
+      "items": {
+        "type": "string"
+      }
+    },
+    "amenities": {
+      "type": "array",
+      "description": "Available amenities at the stop",
+      "items": {
+        "type": "string",
+        "enum": [
+          "shelter",
+          "bench",
+          "lighting",
+          "real_time_display",
+          "wheelchair_accessible"
+        ]
+      }
+    },
+    "is_major_stop": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a major transfer point"
+    }
+  },
+  "required": [
+    "stop_name",
+    "stop_code",
+    "latitude",
+    "longitude"
+  ]
+}
