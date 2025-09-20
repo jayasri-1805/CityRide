@@ -1,0 +1,288 @@
+import React, { useState, useEffect } from "react";
+import { Alert, Route } from "@/entities/all";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle, Info, AlertCircle, Calendar, Clock, RefreshCw } from "lucide-react";
+import { format, isAfter, isBefore } from "date-fns";
+
+export default function AlertsPage() {
+  const [alerts, setAlerts] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [selectedSeverity, setSelectedSeverity] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+    
+    // Refresh alerts every 2 minutes
+    const interval = setInterval(() => {
+      loadData();
+    }, 120000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [alertsData, routesData] = await Promise.all([
+        Alert.list('-created_date'),
+        Route.list()
+      ]);
+      
+      // Filter for active alerts
+      const activeAlerts = alertsData.filter(alert => {
+        if (!alert.is_active) return false;
+        
+        const now = new Date();
+        if (alert.start_time && isAfter(new Date(alert.start_time), now)) return false;
+        if (alert.end_time && isBefore(new Date(alert.end_time), now)) return false;
+        
+        return true;
+      });
+      
+      setAlerts(activeAlerts);
+      setRoutes(routesData);
+    } catch (error) {
+      console.error("Error loading alerts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getSeverityIcon = (severity) => {
+    switch (severity) {
+      case 'severe':
+        return <AlertTriangle className="w-5 h-5 text-red-500" />;
+      case 'warning':
+        return <AlertCircle className="w-5 h-5 text-amber-500" />;
+      case 'info':
+      default:
+        return <Info className="w-5 h-5 text-blue-500" />;
+    }
+  };
+
+  const getSeverityColor = (severity) => {
+    switch (severity) {
+      case 'severe':
+        return 'border-red-200 bg-red-50';
+      case 'warning':
+        return 'border-amber-200 bg-amber-50';
+      case 'info':
+      default:
+        return 'border-blue-200 bg-blue-50';
+    }
+  };
+
+  const getSeverityBadge = (severity) => {
+    switch (severity) {
+      case 'severe':
+        return <Badge variant="destructive">Severe</Badge>;
+      case 'warning':
+        return <Badge className="bg-amber-100 text-amber-800">Warning</Badge>;
+      case 'info':
+      default:
+        return <Badge className="bg-blue-100 text-blue-800">Info</Badge>;
+    }
+  };
+
+  const getRouteInfo = (routeId) => {
+    return routes.find(route => route.id === routeId);
+  };
+
+  const filteredAlerts = alerts.filter(alert => {
+    if (selectedSeverity && alert.severity !== selectedSeverity) return false;
+    if (selectedType && alert.alert_type !== selectedType) return false;
+    return true;
+  });
+
+  const groupedAlerts = {
+    severe: filteredAlerts.filter(a => a.severity === 'severe'),
+    warning: filteredAlerts.filter(a => a.severity === 'warning'),
+    info: filteredAlerts.filter(a => a.severity === 'info')
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Service Alerts</h1>
+            <p className="text-gray-600">Current service disruptions and notifications</p>
+          </div>
+          <Button variant="outline" onClick={loadData} className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Alert Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="border-red-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{groupedAlerts.severe.length}</p>
+                  <p className="text-sm text-red-700">Severe Alerts</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-amber-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-6 h-6 text-amber-500" />
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{groupedAlerts.warning.length}</p>
+                  <p className="text-sm text-amber-700">Warnings</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Info className="w-6 h-6 text-blue-500" />
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">{groupedAlerts.info.length}</p>
+                  <p className="text-sm text-blue-700">Information</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
+            <SelectTrigger className="md:w-48">
+              <SelectValue placeholder="Filter by severity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={null}>All Severities</SelectItem>
+              <SelectItem value="severe">Severe</SelectItem>
+              <SelectItem value="warning">Warning</SelectItem>
+              <SelectItem value="info">Information</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedType} onValueChange={setSelectedType}>
+            <SelectTrigger className="md:w-48">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={null}>All Types</SelectItem>
+              <SelectItem value="service_disruption">Service Disruption</SelectItem>
+              <SelectItem value="delay">Delay</SelectItem>
+              <SelectItem value="route_change">Route Change</SelectItem>
+              <SelectItem value="maintenance">Maintenance</SelectItem>
+              <SelectItem value="weather">Weather</SelectItem>
+              <SelectItem value="special_event">Special Event</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Alerts List */}
+      <div className="space-y-4">
+        {isLoading ? (
+          Array(3).fill(0).map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-6 bg-gray-200 rounded w-3/4 mb-4" />
+                <div className="h-4 bg-gray-200 rounded w-full mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-2/3" />
+              </CardContent>
+            </Card>
+          ))
+        ) : filteredAlerts.length > 0 ? (
+          filteredAlerts.map((alert) => (
+            <Card key={alert.id} className={${getSeverityColor(alert.severity)} border-l-4}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start gap-3">
+                    {getSeverityIcon(alert.severity)}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {alert.title}
+                      </h3>
+                      <p className="text-gray-700 mb-3">{alert.description}</p>
+                      
+                      {/* Affected Routes */}
+                      {alert.affected_routes && alert.affected_routes.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Affected Routes:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {alert.affected_routes.map((routeId) => {
+                              const route = getRouteInfo(routeId);
+                              return route ? (
+                                <Badge key={routeId} variant="outline" className="flex items-center gap-1">
+                                  <div
+                                    className="w-3 h-3 rounded"
+                                    style={{ backgroundColor: route.route_color }}
+                                  />
+                                  {route.route_number}
+                                </Badge>
+                              ) : (
+                                <Badge key={routeId} variant="outline">
+                                  Route {routeId}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-end gap-2">
+                    {getSeverityBadge(alert.severity)}
+                    <Badge variant="secondary" className="capitalize">
+                      {alert.alert_type.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-6 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      Created: {format(new Date(alert.created_date), 'MMM d, yyyy')}
+                    </span>
+                  </div>
+                  
+                  {alert.end_time && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>
+                        Until: {format(new Date(alert.end_time), 'MMM d, yyyy HH:mm')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Info className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No alerts found</h3>
+              <p className="text-gray-500">
+                {selectedSeverity || selectedType 
+                  ? "No alerts match your current filters" 
+                  : "All systems are running normally"}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
