@@ -1,0 +1,24 @@
+import React from "react";
+import { Polyline } from "react-leaflet";
+
+export default function RouteOverlay({ routes, selectedRoute }) {
+  const routesToShow = selectedRoute ? [selectedRoute] : routes.filter(r => r.is_active);
+
+  return (
+    <>
+      {routesToShow.map((route) => {
+        if (!route.path_coordinates || route.path_coordinates.length === 0) return null;
+
+        return (
+          <Polyline
+            key={route.id}
+            positions={route.path_coordinates}
+            color={route.route_color}
+            weight={selectedRoute ? 4 : 3}
+            opacity={selectedRoute ? 0.8 : 0.6}
+          />
+        );
+      })}
+    </>
+  );
+}
