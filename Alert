@@ -1,0 +1,70 @@
+{
+  "name": "Alert",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Alert headline"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the alert"
+    },
+    "alert_type": {
+      "type": "string",
+      "enum": [
+        "service_disruption",
+        "delay",
+        "route_change",
+        "maintenance",
+        "weather",
+        "special_event"
+      ],
+      "description": "Type of service alert"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "severe"
+      ],
+      "default": "info",
+      "description": "Severity level of the alert"
+    },
+    "affected_routes": {
+      "type": "array",
+      "description": "Array of route IDs affected by this alert",
+      "items": {
+        "type": "string"
+      }
+    },
+    "affected_stops": {
+      "type": "array",
+      "description": "Array of stop IDs affected by this alert",
+      "items": {
+        "type": "string"
+      }
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the alert becomes effective"
+    },
+    "end_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the alert expires"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the alert is currently active"
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "alert_type"
+  ]
+}
