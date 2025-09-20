@@ -1,0 +1,112 @@
+import React, { useState, useEffect } from "react";
+import { Route } from "@/entities/all";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, Clock, MapPin, Navigation } from "lucide-react";
+
+import RouteCard from "../components/routes/RouteCard";
+import RouteDetails from "../components/routes/RouteDetails";
+
+export default function RoutesPage() {
+  const [routes, setRoutes] = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadRoutes();
+  }, []);
+
+  const loadRoutes = async () => {
+    setIsLoading(true);
+    try {
+      const data = await Route.list();
+      setRoutes(data);
+    } catch (error) {
+      console.error("Error loading routes:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredRoutes = routes.filter(route =>
+    route.route_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    route.route_number.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Routes List */}
+        <div className="flex-1">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Transit Routes</h1>
+            <p className="text-gray-600">Browse all available public transport routes</p>
+          </div>
+
+          {/* Search */}
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search routes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Route Cards */}
+          <div className="grid gap-4">
+            {isLoading ? (
+              Array(6).fill(0).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-4">
+                    <div className="h-4 bg-gray-200 rounded w-1/4 mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
+                    <div className="flex gap-2">
+                      <div className="h-6 bg-gray-200 rounded w-16" />
+                      <div className="h-6 bg-gray-200 rounded w-20" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              filteredRoutes.map((route) => (
+                <RouteCard
+                  key={route.id}
+                  route={route}
+                  isSelected={selectedRoute?.id === route.id}
+                  onClick={() => setSelectedRoute(route)}
+                />
+              ))
+            )}
+          </div>
+
+          {!isLoading && filteredRoutes.length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Navigation className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No routes found</h3>
+                <p className="text-gray-500">
+                  {searchQuery ? "Try adjusting your search terms" : "No routes available at this time"}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Route Details Sidebar */}
+        {selectedRoute && (
+          <div className="lg:w-96">
+            <RouteDetails 
+              route={selectedRoute}
+              onClose={() => setSelectedRoute(null)}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
