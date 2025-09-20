@@ -1,0 +1,319 @@
+import React, { useState, useEffect } from "react";
+import { Route, Stop, Vehicle } from "@/entities/all";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Clock, MapPin, Navigation, RefreshCw } from "lucide-react";
+import { format, addMinutes } from "date-fns";
+
+export default function SchedulesPage() {
+  const [routes, setRoutes] = useState([]);
+  const [stops, setStops] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState("");
+  const [selectedStop, setSelectedStop] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+
+  useEffect(() => {
+    loadData();
+    
+    // Update data every minute
+    const interval = setInterval(() => {
+      loadData();
+      setLastUpdate(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [routesData, stopsData, vehiclesData] = await Promise.all([
+        Route.list(),
+        Stop.list(),
+        Vehicle.list()
+      ]);
+      setRoutes(routesData);
+      setStops(stopsData);
+      setVehicles(vehiclesData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateScheduleTimes = (route) => {
+    const now = new Date();
+    const times = [];
+    const startHour = route.operating_hours?.start_time ? 
+      parseInt(route.operating_hours.start_time.split(':')[0]) : 6;
+    const endHour = route.operating_hours?.end_time ? 
+      parseInt(route.operating_hours.end_time.split(':')[0]) : 23;
+    
+    // Generate times for next 3 hours from now
+    for (let i = 0; i < (60 * 3) / route.frequency_minutes; i++) {
+      const time = addMinutes(now, i * route.frequency_minutes);
+      if (time.getHours() >= startHour && time.getHours() <= endHour) {
+        times.push(time);
+      }
+    }
+    
+    return times.slice(0, 8); // Show next 8 departures
+  };
+
+  const getArrivalEstimate = (route, stop) => {
+    // Find vehicles on this route
+    const routeVehicles = vehicles.filter(v => v.route_id === route.id);
+    
+    if (routeVehicles.length === 0) {
+      return generateScheduleTimes(route);
+    }
+
+    // For demo purposes, generate estimated arrival times based on vehicle positions
+    const estimates = [];
+    const now = new Date();
+    
+    routeVehicles.forEach((vehicle, index) => {
+      // Simulate different arrival times for different vehicles
+      const baseMinutes = (index + 1) * route.frequency_minutes;
+      const estimatedTime = addMinutes(now, baseMinutes);
+      
+      if (vehicle.is_delayed) {
+        estimates.push({
+          time: addMinutes(estimatedTime, vehicle.delay_minutes || 0),
+          vehicle: vehicle,
+          isEstimate: true,
+          isDelayed: true
+        });
+      } else {
+        estimates.push({
+          time: estimatedTime,
+          vehicle: vehicle,
+          isEstimate: true,
+          isDelayed: false
+        });
+      }
+    });
+    
+    return estimates.sort((a, b) => a.time - b.time);
+  };
+
+  const filteredRoutes = routes.filter(route =>
+    route.route_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    route.route_number.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredStops = selectedRoute
+    ? stops.filter(stop => stop.routes?.includes(selectedRoute))
+    : stops.filter(stop =>
+        stop.stop_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        stop.stop_code.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Schedules & Arrivals</h1>
+            <p className="text-gray-600">Real-time departure and arrival information</p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Clock className="w-4 h-4" />
+            <span>Last updated: {format(lastUpdate, 'HH:mm:ss')}</span>
+            <Button variant="ghost" size="icon" onClick={loadData} className="h-8 w-8">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search routes or stops..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select value={selectedRoute} onValueChange={setSelectedRoute}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by route" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={null}>All Routes</SelectItem>
+              {routes.map((route) => (
+                <SelectItem key={route.id} value={route.id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded"
+                      style={{ backgroundColor: route.route_color }}
+                    />
+                    {route.route_number} - {route.route_name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedStop} onValueChange={setSelectedStop}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by stop" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={null}>All Stops</SelectItem>
+              {filteredStops.map((stop) => (
+                <SelectItem key={stop.id} value={stop.id}>
+                  {stop.stop_name} ({stop.stop_code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Schedule Display */}
+      <div className="grid gap-6">
+        {selectedStop ? (
+          // Single stop view
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="w-5 h-5" />
+                {stops.find(s => s.id === selectedStop)?.stop_name} Departures
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredRoutes
+                  .filter(route => route.is_active && (!selectedRoute || route.id === selectedRoute))
+                  .map((route) => {
+                    const arrivals = getArrivalEstimate(route, stops.find(s => s.id === selectedStop));
+                    
+                    return (
+                      <div key={route.id} className="border rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div
+                            className="w-6 h-6 rounded-lg"
+                            style={{ backgroundColor: route.route_color }}
+                          />
+                          <div>
+                            <h3 className="font-semibold">{route.route_number}</h3>
+                            <p className="text-sm text-gray-600">{route.route_name}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {arrivals.slice(0, 4).map((arrival, index) => (
+                            <div
+                              key={index}
+                              className={`p-2 rounded text-center ${
+                                arrival.isDelayed ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                              }`}
+                            >
+                              <div className="font-semibold">
+                                {format(arrival.time, 'HH:mm')}
+                              </div>
+                              <div className="text-xs">
+                                {arrival.isEstimate ? 'Live' : 'Scheduled'}
+                                {arrival.isDelayed && ' (Delayed)'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          // Route overview
+          <div className="grid gap-4">
+            {isLoading ? (
+              Array(4).fill(0).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-6 bg-gray-200 rounded w-1/4 mb-4" />
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-full" />
+                      <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              filteredRoutes
+                .filter(route => route.is_active)
+                .map((route) => {
+                  const routeVehicles = vehicles.filter(v => v.route_id === route.id);
+                  const delayedVehicles = routeVehicles.filter(v => v.is_delayed);
+                  
+                  return (
+                    <Card key={route.id}>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-8 h-8 rounded-lg"
+                              style={{ backgroundColor: route.route_color }}
+                            />
+                            <div>
+                              <h3 className="text-lg font-semibold">{route.route_number}</h3>
+                              <p className="text-gray-600">{route.route_name}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">Every {route.frequency_minutes} min</Badge>
+                            {delayedVehicles.length > 0 && (
+                              <Badge variant="destructive">
+                                {delayedVehicles.length} delayed
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+                          {generateScheduleTimes(route).slice(0, 6).map((time, index) => (
+                            <div key={index} className="text-center p-2 bg-blue-50 rounded">
+                              <div className="font-semibold text-blue-700">
+                                {format(time, 'HH:mm')}
+                              </div>
+                              <div className="text-xs text-blue-600">
+                                in {Math.ceil((time - new Date()) / (1000 * 60))} min
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+            )}
+          </div>
+        )}
+      </div>
+
+      {!isLoading && filteredRoutes.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No schedules found</h3>
+            <p className="text-gray-500">
+              {searchQuery ? "Try adjusting your search terms" : "No active routes available"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
