@@ -1,0 +1,257 @@
+import React, { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from "react-leaflet";
+import { Route, Stop, Vehicle, Alert } from "@/entities/all";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search, Navigation, Clock, Users, AlertCircle } from "lucide-react";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+import MapControls from "../components/map/MapControls";
+import VehicleMarkers from "../components/map/VehicleMarkers";
+import RouteOverlay from "../components/map/RouteOverlay";
+import StopMarkers from "../components/map/StopMarkers";
+import LiveFeed from "../components/map/LiveFeed";
+
+// Fix for default markers in react-leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+export default function LiveMapPage() {
+  const [routes, setRoutes] = useState([]);
+  const [stops, setStops] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [selectedStop, setSelectedStop] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mapCenter] = useState([45.5236, -122.6750]); // Portland, OR as example
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadInitialData();
+    
+    // Simulate real-time updates
+    const interval = setInterval(() => {
+      updateVehiclePositions();
+    }, 30000); // Update every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadInitialData = async () => {
+    setIsLoading(true);
+    try {
+      const [routesData, stopsData, vehiclesData, alertsData] = await Promise.all([
+        Route.list(),
+        Stop.list(),
+        Vehicle.list(),
+        Alert.filter({ is_active: true })
+      ]);
+      
+      setRoutes(routesData);
+      setStops(stopsData);
+      setVehicles(vehiclesData);
+      setAlerts(alertsData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateVehiclePositions = async () => {
+    try {
+      const updatedVehicles = await Vehicle.list();
+      setVehicles(updatedVehicles);
+    } catch (error) {
+      console.error("Error updating vehicle positions:", error);
+    }
+  };
+
+  const handleRouteSelect = (route) => {
+    setSelectedRoute(route);
+    setSelectedStop(null);
+  };
+
+  const handleStopSelect = (stop) => {
+    setSelectedStop(stop);
+    setSelectedRoute(null);
+  };
+
+  const filteredRoutes = routes.filter(route =>
+    route.route_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    route.route_number.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredStops = stops.filter(stop =>
+    stop.stop_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    stop.stop_code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="h-screen flex flex-col">
+      {/* Alert Banner */}
+      {alerts.length > 0 && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600" />
+            <span className="text-sm font-medium text-amber-800">
+              {alerts.length} active service alert{alerts.length > 1 ? 's' : ''}
+            </span>
+            <Button variant="link" className="h-auto p-0 text-amber-700 text-sm">
+              View details
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 relative">
+        {/* Search Bar */}
+        <div className="absolute top-4 left-4 right-4 z-[1000] md:right-auto md:w-80">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search routes or stops..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white/95 backdrop-blur-sm"
+            />
+          </div>
+          
+          {/* Search Results */}
+          {searchQuery && (filteredRoutes.length > 0 || filteredStops.length > 0) && (
+            <Card className="mt-2 bg-white/95 backdrop-blur-sm">
+              <CardContent className="p-3 max-h-60 overflow-y-auto">
+                {filteredRoutes.length > 0 && (
+                  <div className="mb-3">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Routes</h4>
+                    {filteredRoutes.map((route) => (
+                      <button
+                        key={route.id}
+                        onClick={() => {
+                          handleRouteSelect(route);
+                          setSearchQuery("");
+                        }}
+                        className="w-full text-left p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded"
+                            style={{ backgroundColor: route.route_color }}
+                          />
+                          <span className="font-medium">{route.route_number}</span>
+                          <span className="text-gray-600">{route.route_name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {filteredStops.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Stops</h4>
+                    {filteredStops.slice(0, 5).map((stop) => (
+                      <button
+                        key={stop.id}
+                        onClick={() => {
+                          handleStopSelect(stop);
+                          setSearchQuery("");
+                        }}
+                        className="w-full text-left p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{stop.stop_name}</span>
+                          <span className="text-sm text-gray-500">{stop.stop_code}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Map Controls */}
+        <MapControls
+          routes={routes}
+          selectedRoute={selectedRoute}
+          onRouteSelect={handleRouteSelect}
+          onClearSelection={() => {
+            setSelectedRoute(null);
+            setSelectedStop(null);
+          }}
+        />
+
+        {/* Live Feed */}
+        <LiveFeed vehicles={vehicles} alerts={alerts} />
+
+        {/* Map */}
+        <MapContainer
+          center={mapCenter}
+          zoom={13}
+          className="w-full h-full"
+          zoomControl={false}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          {/* Route Overlay */}
+          <RouteOverlay routes={routes} selectedRoute={selectedRoute} />
+
+          {/* Stop Markers */}
+          <StopMarkers 
+            stops={stops} 
+            selectedRoute={selectedRoute}
+            onStopSelect={handleStopSelect}
+          />
+
+          {/* Vehicle Markers */}
+          <VehicleMarkers 
+            vehicles={vehicles} 
+            routes={routes}
+            selectedRoute={selectedRoute}
+          />
+
+          {/* Selected Stop Details */}
+          {selectedStop && (
+            <Marker position={[selectedStop.latitude, selectedStop.longitude]}>
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-semibold">{selectedStop.stop_name}</h3>
+                  <p className="text-sm text-gray-600">Stop Code: {selectedStop.stop_code}</p>
+                  <div className="flex gap-1 mt-2">
+                    {selectedStop.amenities?.map((amenity) => (
+                      <Badge key={amenity} variant="secondary" className="text-xs">
+                        {amenity.replace('_', ' ')}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+        </MapContainer>
+
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-[2000] flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
+              <p className="text-gray-600">Loading transit data...</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
