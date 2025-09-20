@@ -1,0 +1,88 @@
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ChevronUp, ChevronDown, Radio, AlertTriangle, Clock } from "lucide-react";
+import { format } from "date-fns";
+
+export default function LiveFeed({ vehicles, alerts }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const recentUpdates = [
+    ...alerts.slice(0, 3).map(alert => ({
+      type: 'alert',
+      message: alert.title,
+      timestamp: alert.created_date,
+      severity: alert.severity
+    })),
+    ...vehicles.filter(v => v.is_delayed).slice(0, 2).map(vehicle => ({
+      type: 'delay',
+      message: Vehicle ${vehicle.vehicle_id} running ${vehicle.delay_minutes} min late,
+      timestamp: new Date().toISOString()
+    }))
+  ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+
+  return (
+    <div className={`absolute bottom-4 left-4 z-[1000] w-80 transition-all duration-300 ${
+      isExpanded ? 'h-80' : 'h-auto'
+    }`}>
+      <Card className="bg-white/95 backdrop-blur-sm">
+        <CardHeader 
+          className="pb-2 cursor-pointer"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <CardTitle className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <Radio className="w-4 h-4 text-green-500" />
+              Live Feed
+              <Badge variant="secondary" className="text-xs">
+                {recentUpdates.length} updates
+              </Badge>
+            </div>
+            <Button variant="ghost" size="icon" className="h-6 w-6">
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronUp className="w-4 h-4" />
+              )}
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        
+        {isExpanded && (
+          <CardContent className="pt-2 max-h-64 overflow-y-auto">
+            <div className="space-y-2">
+              {recentUpdates.length > 0 ? (
+                recentUpdates.map((update, index) => (
+                  <div key={index} className="flex items-start gap-2 p-2 rounded-lg bg-gray-50">
+                    {update.type === 'alert' ? (
+                      <AlertTriangle className={`w-4 h-4 mt-0.5 ${
+                        update.severity === 'severe' ? 'text-red-500' :
+                        update.severity === 'warning' ? 'text-amber-500' :
+                        'text-blue-500'
+                      }`} />
+                    ) : (
+                      <Clock className="w-4 h-4 mt-0.5 text-orange-500" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-900">
+                        {update.message}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {format(new Date(update.timestamp), 'HH:mm')}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  No recent updates
+                </p>
+              )}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    </div>
+  );
+}
