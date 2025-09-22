@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "citytransit-20ab6",
+  "private_key_id": "85419521df0710289dc68409bebcab463ac0af5a",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDPLdCbLb8A5CHP\ntJbPDCMEhBqmvV+D87KUjuKQNYwDGrQ6cbAbKgWQsjMli/UPkWXpiAstyGyqZ0Fv\n2bJYkeVxzfhJBmfjSzwuiA2t0AeeOdfOz1LufjGAJfQ70UmCEj297B1Abf7Ozscx\nJcpSArkpjsIpZ6IbKqtdxRtnaQap711O7PU0UtiGQwj6n2+d5R+H4lx0FcrrRug0\nalyLcp9UVoB72WavyxrdW5H20uMRwA2LTqQ6+yiKvTeef2Hq0UZuzzm1uoB5eOkD\nhwGRcIVC22yJG+1tLJhzBrQhZqtnxJAJKC4UjUOXWqJMdOwERWjR3L8JijkJZ1Pm\nZsi+QodxAgMBAAECggEAMbksNOIw0lTubHxKKZ0fFmliQBx5PSES/iag572CQgh5\nswEwJATc2xJ5xgwmH7tkuzzEehN9SRSJFwAnlqxFZh/p9BTOgDXBVuWeatXfzjDR\nw7fsjoLI/JmfWW/sdYRNPzTY/Gqp2ha0pe4M9cvjhr7ViLxvopeGE3ZIEnSZfdUf\nf2sGDukbBGARpmu467kHcxGXPeF4CcqMR26pcxPVZ9w/JHIYNVuOtitmjIfiXHoz\nVjlJR8R+aiSLLfkfF6lPTBXZAXqFkadZEXiybgX9QNTHTOMQaLIH60LH+86fD5pi\ntayw+hM2hwJYcENh6ipE9Nv0w6PVD+XLe4s0JPkNtQKBgQDqAmnxAl+a7mvhxBoK\npuveG2EJul/Zx+h0q4ZETr8H1UR07Y0y/gJ814kSirqAo96fTRXwVC4hKvSfO9IU\nwOf5HVv/fvEozi2ecGy8yQpxMY8RAx+BapGLmq/VsGmT/CqS22LxB6RAxlQf4rH/\nPu6DseTdPUxtO8pe2wNalrRAQwKBgQDipfAnPNopNUo0mZGYeFE024Er7s6A1PF3\n4XKnuketHY1l/Qy7ge/fgRN5jD+5e10tdX/zDN+UgaM8wuTRELXGIEM+yDvKzONw\n13bYpt0yDN7q8zTDcm26jPBksJWIE6xPb18ERLdkmNwzoQUuJCy9MtVNZyCR4elE\ng1heL2noOwKBgQDL7iiXIQNiSG75w+UR7V/WIrQRPzty1fUtX6FV++4cjG3pHHAV\nxSkz1L2ezAk2PBixaQM6epHs07t03TP6ZBaEkWJwKRdPAUbeMYmBiA4ykQblw3v8\nU3vdVoPvzJplnbcYXlo+RPOOg4gidXO7RgOj/y6840OsWhPFUEX+9yDEcwKBgAY4\nteHt2rM84j+VY5jC3L/NsrsJACQrNEGtL5+JDoSjBgmhq6LOC06gVW+FuQ4XY9Rm\noE+Er/J8qIV3eB6BDexVYGMtze5gN3IWiA2kbvf7wHbEnFMtJfP0AHlTG5ezqow3\nq20LkdkyFQFZzzGYDp5W8eIBDbTTdbrKvDdBp++XAoGAO4vbGBgi/zGZ8Bv2+zoJ\n8LMQ+l+eRdNdXfD+IsgATzHC8XO5VCX5vxVKVyVGFI4B4HmxodaJwFwvF0GkVGZ6\nyyJ4MFKhj2n1Vwq1OgO61Fxvb8+HOVO4jGbOWoKyiH0uPHzVfEys/J+gAMQQkyCT\n+Id1KsAyCLBh3EZOGo3bi5Q=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@citytransit-20ab6.iam.gserviceaccount.com",
+  "client_id": "104354116995598406484",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40citytransit-20ab6.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
